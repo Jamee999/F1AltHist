@@ -63,6 +63,7 @@ class Team():
 Teams = []
 TeamNames = ['Alfa Romeo', 'Ferrari', 'Maserati', 'Cooper']
 cardict = {'Alfa Romeo':200,'Ferrari':15,'Maserati':4,'Cooper':3,'Privateer':1}
+formers = []
 
 Races = ['GBR', 'MON', 'SUI', 'BEL', 'FRA', 'ITA']
 
@@ -141,14 +142,12 @@ for i in Drivers:
 
 
 def eval (d, t, y):
-    if d.Team != '' or d.Last < y:
+    if d.Team != '' or d.Last <= y:
         return -1000
-    if t.Name in d.Name:
-        return (d.Rating**0.5 + d.Rep) * (random.random() + 1)
     elif d.Pref == t.Name:
-        return (d.Rating**0.5  + d.Rep) * (random.random() + 0.2)
+        return (d.Rating + d.Rep) * (random.random() + 0.2)
     else:
-        return (d.Rating**0.5 + d.Rep) * random.random()
+        return (d.Rating + d.Rep) * random.random()
 
 def teammake (n, r):
     global Teams, Year
@@ -167,8 +166,17 @@ def teammake (n, r):
         return False
 
 def season (Drivers, Teams, Year, Races):
-    global allDrivers
+    global allDrivers, space, formers
     print (Year)
+
+    space = 0
+    for i in Drivers:
+        if len(i.Name) > space:
+            space = len(i.Name)
+    space = space + 1
+
+    if space > 25:
+        space = 25
 
     for i in Drivers:
         i.Points = 0
@@ -217,9 +225,9 @@ def season (Drivers, Teams, Year, Races):
                 if x[k].Name == i.Name:
                     i.Points = i.Points + pointsdict[k+1]
                     if Year < 2010:
-                        i.Rep = i.Rep + (pointsdict[k+1])/1000
+                        i.Rep = i.Rep + (pointsdict[k+1])/100
                     else:
-                        i.Rep = i.Rep + (pointsdict[k+1])/5000
+                        i.Rep = i.Rep + (pointsdict[k+1])/500
         print ()
 
     Drivers.sort(key = lambda x: x.Points + x.Wins/1000)
@@ -236,9 +244,14 @@ def season (Drivers, Teams, Year, Races):
 
     for i in Drivers:
         if i.Name == Champion.Name:
-            i.Rep = i.Rep + 1
+            i.Rep = i.Rep + 10
 
     print()
+
+    DriverLog = []
+
+    for i in Teams:
+        DriverLog.append([i.Name,i.Drivers])
 
     for i in Drivers:
         if i.Last == Year:
@@ -248,16 +261,13 @@ def season (Drivers, Teams, Year, Races):
         if i.First == Year+1:
             Drivers.append(i)
 
-    if random.random() < 0.01:
-        teammake('BMW',1)
-    if random.random() < 0.01:
-        teammake('Ford',1)
-    if random.random() < 0.01:
-        teammake('Nissan',1)
-    if random.random() < 0.01:
-        teammake('Chevrolet',1)
-    if random.random() < 0.01:
-        teammake('Volkswagen',1)
+    possteams = ['BMW', 'Ford', 'Nissan', 'Chevrolet', 'Volkswagen', 'Mercedes', 'BRM', 'Lotus', 'Honda', 'Renault', 'Toyota', 'Alfa Romeo', 'Maserati', 'Cooper'] + formers
+
+    possteams = [i for i in possteams if i not in Teams]
+
+    if random.random() < 0.03:
+        teammake(random.choice(possteams), 1)
+        
     if Year+1 == 1954:
         teammake('Mercedes',70)
     if Year+1 == 1956:
@@ -300,51 +310,58 @@ def season (Drivers, Teams, Year, Races):
         teammake('Haas',0.1)
 
     for i in Teams:
-        if ((i.Rating < 10 and random.random() < 1/100) or (i.Rating < 1 and random.random() < 1/20))  and len(Teams) > 10 and i.Name != 'Ferrari':
+        if ((i.Rating < 10 and random.random() < 1/30) or (i.Rating < 1 and random.random() < 1/20))  and len(Teams) > 10 and i.Name != 'Ferrari':
             print ()
             print (i.Name, 'leaving F1.')
             print ()
+            formers.append(i.Name)
             Teams.remove(i)
+            for j in Drivers:
+                if j.Team == i.Name:
+                    j.Team = ''
+                    
+    Retiring = []
+    print ('Retiring:', end = ' ')
+    for i in allDrivers:
+        if i.Team != '' and i.Last == Year:
+            print (i.Name, end = ', ')
+    print ()
 
     for i in Drivers:
         i.Contract = i.Contract - 1
-
-    print (Year+1, 'Lineups')
 
     Teams.sort(key= lambda x: x.Rating, reverse = True)
     for i in Teams:
         i.Drivers = []
         for j in Drivers:
             if i.Name == j.Team and j.Last > Year:
-                if random.random() < (1/3 + (j.Wins/100)) or j.Contract > 0 or j == Champion or Team.Name in j.Name:
+                if random.random() < 0.25 or j.Contract > 0 or j == Champion or (j.Name == 'Jack Brabham' and i.Name == 'Brabham') or (j.Name == 'Bruce McLaren' and i.Name == 'McLaren'):
                     i.Drivers.append(j)
-                    #print (i.Name.ljust(20), j.Name.ljust(20))
+                    #print (i.Name.ljust(space), j.Name.ljust(space))
                 else:
                     j.Team = ''
             elif j.Last <= Year:
                 j.Team = ''
 
+    n = 0
+    if Year < 1975:
+        m = 3
+    else:
+        m = 2
     for i in Teams:
-        if Year < 1975:
-            while len(i.Drivers) < 3:
-                Drivers.sort(key= lambda x: eval (x, i, Year), reverse = True)
-                Drivers[0].Team = i.Name
-                if i.Rating > 5:
-                    Drivers[0].Contract = random.randrange(2,4)
-                else:
-                    Drivers[0].Contract = random.randrange(1,2)
-                i.Drivers.append(Drivers[0])
-                #print (i.Name.ljust(20), Drivers[0].Name.ljust(20),round(Drivers[0].Rep,1))
-        else:
-            while len(i.Drivers) < 2:
-                Drivers.sort(key= lambda x: eval (x, i, Year), reverse = True)
-                Drivers[0].Team = i.Name
-                if i.Rating > 10:
-                    Drivers[0].Contract = random.randrange(2,5)
-                else:
-                    Drivers[0].Contract = random.randrange(1,3)
-                i.Drivers.append(Drivers[0])
-                #print (i.Name.ljust(20), Drivers[0].Name.ljust(20),round(Drivers[0].Rep,1))
+        n = n + 1
+        while len(i.Drivers) < m:
+            Drivers.sort(key= lambda x: eval (x, i, Year), reverse = True)
+            Drivers[0].Team = i.Name
+            if n <= 3:
+                Drivers[0].Contract = random.randrange(2,5)
+            elif n <= 6:
+                Drivers[0].Contract = random.randrange(1,4)
+            else:
+                Drivers[0].Contract = random.randrange(1,3)
+            i.Drivers.append(Drivers[0])
+            #print (i.Name.ljust(space), Drivers[0].Name.ljust(space),round(Drivers[0].Rep,1))
+
 
     for i in Teams:
         if random.random() < 1/10 and i.Rating < 250:
@@ -358,24 +375,45 @@ def season (Drivers, Teams, Year, Races):
             i.Rating = i.Rating*random.random()*random.random()
         if Year % 7 == 0:
             if random.random() > 1/5:
-                i.Rating = max(4*random.random()*random.random()*random.random(), random.random()*i.Rating**(1/2))
+                i.Rating = max(4*random.random()*random.random(), random.random()*i.Rating**(1/2))
             else:
-                i.Rating = (random.uniform(0,10)**2)*i.Rating**(1/2)
+                i.Rating = (random.uniform(0,10)**2)*i.Rating**(1/3)
         if Year % 3 == 0:
             if random.random() > 1/2:
-                i.Rating = i.Rating * 20 * random.random()
+                i.Rating = i.Rating * 10 * random.random()
         else:
             pass
         if i.Rating < 1/2:
-            i.Rating = i.Rating*random.uniform(1,4)
+            i.Rating = i.Rating*random.uniform(1,2)
+
+        if i.Name in ['Ferrari', 'Mercedes', 'Alfa Romeo', 'Renault', 'McLaren', 'Lotus'] and random.random() < 0.25:
+            i.Rating = i.Rating * random.uniform(1,5)
 
         i.Rating = round(i.Rating,1)
 
 
+
     for i in Teams:
-        print (i.Name.ljust(20), end = ' ')
+        check = False
+        print (i.Name.ljust(15), end = ' ')
+        i.Drivers.sort(key = lambda x: x.Name)
+        print (Year, end = ' - ')
+        for k in DriverLog:    
+            if k[0] == i.Name:
+                check = True
+                for j in k[1]:
+                    k[1].sort(key = lambda x: x.Name)
+                    print (j.Name.ljust(space), end= ' ')
+        if check == False:
+            if Year > 1975:
+                print (' '.ljust(2+2*space), end = '')
+            else:
+                print (' '.ljust(28+2*space), end = '')
+        print (Year+1, end = ' - ')
         for j in i.Drivers:
-            print (j.Name.ljust(20), end = ' ')
+            print (j.Name.ljust(space), end = ' ')
+
+                        
         print ()
 
     return Drivers, Teams
@@ -388,11 +426,11 @@ def calendar (r, y):
     if y > 1960:
         possibles = possibles + ['MEX', 'CAN', 'RSA', 'BRA', 'JPN']
     if y > 1970:
-        possibles = possibles + ['DEN', 'SMR', 'EUR', 'USW', 'SWE']
+        possibles = possibles + ['DMK', 'SMR', 'EUR', 'USW', 'SWE']
     if y > 1980:
-        possibles = possibles + ['AUS', 'HUN', 'URU', 'DET', 'IRE']
+        possibles = possibles + ['AUS', 'HUN', 'URU', 'DET', 'FIN']
     if y > 1990:
-        possibles = possibles + ['MAL', 'PAC', 'CHN', 'FIN', 'RUS']
+        possibles = possibles + ['MAL', 'PAC', 'CHN', 'NZL', 'RUS']
     if y > 2000:
         possibles = possibles + ['BAH', 'ABU', 'TUR', 'SIN', 'KOR']
     if y > 2010:
@@ -408,10 +446,10 @@ def calendar (r, y):
     fail = False
     while fail == False:
         try:
-            if random.random() < 0.25:
+            if random.random() < 1/3 and ( (Year > 1950 and len(r) < 10) or (Year > 1975 and len(r) < 15) or (Year > 2000 and len (r) < 20) or (Year > 2015)  ):
                 candidates = [i for i in possibles if i not in r]
                 x = random.choice(candidates)
-                if x == 'USW' and 'USA' not in r:
+                if (x == 'USW' or x == 'DET') and 'USA' not in r:
                     x = 'USA'
                 r.append(x)
                 print ('New Grand Prix:', x) 
@@ -422,12 +460,12 @@ def calendar (r, y):
             break
 
     summer = ['GBR','MON','BEL','FRA','ITA','GER','SUI','ESP','NED','POR','AUT','CAN',
-              'DEN','SMR','EUR','SWE','HUN','POL','DET','IRE','TUR','CZE','AZB','FIN']
+              'DMK','SMR','EUR','SWE','HUN','POL','DET','IRE','TUR','CZE','AZB','FIN']
     flyaways = [i for i in r if i not in summer]
 
 
     def rate (x, s, f):
-        timedict = {'MON':-0.75,'ITA':0.9,'BEL':0.89,'GBR':0, 'SMR':-0.9}
+        timedict = {'MON':-0.75,'ITA':0.9,'BEL':0.89,'GBR':0, 'SMR':-0.9,'JPN':50,'BAH':-50,'ARG':-80}
         try:
             return timedict[x]
         except:
