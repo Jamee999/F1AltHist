@@ -1,8 +1,5 @@
 import random, time
 
-
-####THIS FILE IS BEING CONVERTED TO MAKE DRIVER.TEAM OBJECTS INSTEAD OF STRINGS
-
 print ()
 
 with open('f1data.csv', 'r') as f:
@@ -12,6 +9,8 @@ with open('f1circuits.csv', 'r') as f:
     RawCircuits = [line.strip() for line in f]
 
 Year = 1950
+
+randomdebut = 'n'
 
 class Driver():
     Name = ''
@@ -56,10 +55,7 @@ for i in RawDrivers:
     ln = a.Name.split(' ')[-1]
     if ln == ('Jr.' or 'Sr.' or "Jr" or "Sr") or ' de ' in a.Name or ' da ' in a.Name or ' di ' in a.Name or ' von ' in a.Name or ' van ' in a.Name:
         ln = a.Name.split(' ')[-2] + ' ' + ln
-    try:
-        ln = lndict[ln]
-    except:
-        pass
+
     a.ln = ln
     a.iln = a.Name[0] + '. ' + ln
     
@@ -86,26 +82,37 @@ for i in RawDrivers:
         
     a.First = int(i[1])
     real = int(i[2])
-    if a.First <= 1950:
+    if a.First <= 1952:
         a.Last = int(i[2])
     else:
         a.Last = a.First + random.randrange(8,12)
-        a.Last = a.Last + round((Year-1950)/15)
+        a.Last = a.Last + round((a.First-1950)/15)
         if a.First >= 1955:
             a.First = a.First + random.randrange(-1,1)
-    a.Last = a.Last + random.randrange(-2,2)
-    if real > a.Last:
+    if a.Last != 2019:
+        a.Last = a.Last + random.randrange(-2,2)
+    if real > a.Last and (a.Last - a.First < 16 or random.random() < 0.5):
         a.Last = real
 
     if a.Last == 2019:
         a.Last = a.Last + random.randrange(0, 4)
         
     a.Rating = float(i[3])
-    a.Peak = a.Rating
-    a.Peak = a.Peak
+    if a.Rating < 1 and a.Last < 2019:
+        a.Rating = a.Rating * random.random()
+    
+    a.Peak = a.Rating ** random.uniform(2/3,4/3)
     a.Nat = i[4]
     allDrivers.append(a)
     n = n+1
+
+if randomdebut == 'y':
+    years = [[x.First,x.Last] for x in allDrivers]
+    years.sort(key = lambda x: random.random())
+
+    for i in range(len(allDrivers)):
+        allDrivers[i].First = years[i][0]
+        allDrivers[i].Last = years[i][1]
 
 class Circuit():
     Name = ''
@@ -150,7 +157,7 @@ class Team():
 
 Teams = []
 TeamNames = ['Alfa Romeo', 'Ferrari', 'Maserati', 'Cooper','Privateer']
-cardict = {'Alfa Romeo':800,'Ferrari':100,'Maserati':60,'Cooper':40,'Privateer':1}
+cardict = {'Alfa Romeo':600,'Ferrari':200,'Maserati':160,'Cooper':40,'Privateer':1}
 formers = []
 formerTeams = []
 
@@ -163,7 +170,7 @@ for i in TeamNames:
     a.Name = i
     a.Rating = cardict[i]
     a.First = 1950
-    if i == ('Alfa Romeo' or 'Ferrari' or 'Maserati'):
+    if i == 'Alfa Romeo' or i == 'Ferrari' or i == 'Maserati':
         a.Nat = "Italy"
     elif i == 'Cooper':
         a.Nat = 'United Kingdom'
@@ -174,13 +181,13 @@ def teamfind (x, t):
         if i.Name == x:
             return i
 
-def race (Drivers, Teams, n):
+def race (Drivers, Teams, n, c):
     Standings = []
 
     xDrivers = [i for i in Drivers if i.Team != '' and i not in Standings]
 
     for i in xDrivers:
-        if i.Team.Name == 'Privateer' and random.random() < 0.1:
+        if i.Team == 'Privateer' and random.random() < 0.5*i.Rating:
             xDrivers.remove(i)
         elif i.Sub != '':
             for j in Drivers:
@@ -192,18 +199,30 @@ def race (Drivers, Teams, n):
 
     t = len(xDrivers)
 
-    Chaos = max(1, random.uniform(-18,2))**2
+    Chaos = max(1, random.uniform(-17,3)+c)**1.5
     #Chaos = 3
     #print(Chaos)
     DNFs = []
-    if Chaos > 2:
-        RetFac = 0.06
-    else:
-        RetFac = 0.06 + (2020-Year)/1000
+    if Chaos > 4:
+        print ('Chaotic race!!!')
+    elif Chaos > 3:
+        print ('Chaotic race!!')
+    elif Chaos > 2:
+        print ('Chaotic race!')
+
+    RetFac = random.random()/8 + (2020-Year)/350 + (Chaos**2)/100
 
     Pole = ''
+
+    y = 27 + ((2020-Year)/7)*random.random()
+
+    if Year > 1985:
+        y = 26
+
+    if y > t+1:
+        y = t+1
         
-    while 27 > len(Standings) + len(DNFs) < t:
+    while y > len(Standings) + len(DNFs) < t:
         total = 0
         for i in xDrivers:
             if i.Rating * i.Team.Rating > 1:
@@ -214,9 +233,10 @@ def race (Drivers, Teams, n):
             total = total + i.Power
 
         if Pole == '':
-            xDrivers.sort(key = lambda x:( 5*random.random()* + 2*random.random()*x.Power + (Chaos+1)**(random.uniform(1,4))), reverse = True)
+            xDrivers.sort(key = lambda x:( 100*random.random()* + 2*random.random()*x.Power ), reverse = True)
             Pole = xDrivers[0]
-            xDrivers[0].Power = xDrivers[0].Power + 100
+            xDrivers[0].Power = 50 + xDrivers[0].Power * 1.25
+            xDrivers[0].Rep = xDrivers[0].Rep + 0.1
 
         x = random.uniform(0,total)
         #print (x)
@@ -226,28 +246,23 @@ def race (Drivers, Teams, n):
             count = count + i.Power
             if x < count:
                 if len(Standings) + len(DNFs) < t:
-                    if len (Standings) < n:
-                        if random.random() > RetFac*Chaos**1.5 - i.Rating/1000:
-                            Standings.append(i)
-                            xDrivers.remove(i)
-                            break
-                        elif i not in DNFs:
-                            DNFs.append(i)
-                            xDrivers.remove(i)
-                            break
-                    else:
-                        if random.random() > 2*RetFac*(Chaos+1) - i.Rating/1000:
-                            Standings.append(i)
-                            xDrivers.remove(i)
-                            break
-                        elif i not in DNFs:
-                            DNFs.append(i)
-                            xDrivers.remove(i)
-                            break
+                    z = RetFac + max(0, (6-i.Rating)**2/500)
+                    if len(Standings) > n:
+                        z = z+0.1
 
-    if len(Standings) < n:
+                    if z > 0.8:
+                        z = 0.8
+                    if random.random() > z:
+                        Standings.append(i)
+                        xDrivers.remove(i)
+                        break
+                    elif i not in DNFs:
+                        DNFs.append(i)
+                        xDrivers.remove(i)
+                        break
 
-        DNFs.sort(key= lambda x: random.random())
+
+    DNFs.sort(key= lambda x: random.random())
 
 
     Standings = Standings + DNFs
@@ -298,19 +313,17 @@ for i in Drivers:
 
 
 def eval (d, t, y, m):
-    if d.Last < y or d.First > y or (d.Team != '' and m != 'mid'):
+    for i in Teams:
+        if i.Owner == d and d != i:
+            return - 1000
+    if d.Last <= y or d.First > y+1 or (d.Team != '' and m != 'mid') or (m == 'mid' and d.First == y+1 and y != 1950) or (m == 'mid' and Champion == d):
         return -1000
     if t.Owner == d.Name and d.Last <= y:
         return 1000
-    x = d.Rating + d.Rep
 
-    if t.Rating < 3:
-        if i.First == y:
-            x = x*2
-        elif y - i.First < 5:
-            x = x*(2-(y-i.First)*(1/5))
-        #if i.Races == 0:
-            #x = x*1.5
+    twdc = sum([x.rangz for x in t.Drivers])
+    
+    x = d.Rating + d.Peak + d.Rep + d.Wins + d.Podiums/5 - max(2.5,d.Races**(1/3)) - 25*twdc*d.rangz*random.random() #- min(20, (1+y-d.First)**1.25)
     
     if d.Nat == t.Nat:
         return x * (random.random() + 1/5)
@@ -322,10 +335,10 @@ def teammake (n, r, o, nat):
     for i in Teams:
         if i.Name == n:
             return False
-    if ( (len(Teams) < 15 and Year > 1975) or (len(Teams) < 10 and Year > 1975) or len(Teams) < 8 ) and n != 'Privateer':
+    if ( (len(Teams) < 15 and Year > 1975) or (len(Teams) < 10 and Year > 1975) or (len(Teams) < 7) ) and n != 'Privateer':
         a = Team()
         a.Name = n
-        a.Rating = r
+        a.Rating = random.random()*100*r
         a.Owner = o
         a.First = Year + 1
         a.Nat = nat
@@ -335,6 +348,8 @@ def teammake (n, r, o, nat):
             for j in Drivers:
                 if j.Name == o:
                     j.Team = a
+                    j.Contract = 10
+                    a.Drivers.append(j)
         return True
     else:
         return False
@@ -357,7 +372,7 @@ def pick(ts, k, ad, i, ds): #teams, team, allDrivers, driver, drivers
         pick = aa[0]
         if pick.Team == '':
             worseteam = True
-        elif pick.Team.Points*1.5 < k.Points and pick.Contract <= 1 and pick.Team.Name != k.Name and pick != i and pick.Team.Rating*3 < k.Rating and pick.Team.Rating < 100:
+        elif pick.Team.Points*1.5 < k.Points and pick.Contract <= 1 and pick.Team.Name != k.Name and pick != i and pick.Team.Rating*3 < k.Rating and pick.Team.Rating < 100 and pick.Team.Owner != pick:
             worseteam = True
         else:
             aa.remove(pick)
@@ -371,6 +386,9 @@ def resolve (t2, d1, d2, t, d, ad):
     d1.Rep = d1.Rep/2
     t1 = d1.Team
 
+    if d1 not in d1.Team.Drivers:
+        t2, d1, d2, t, d, ad
+
     for i in d:
         if i.Team == '':
             continue
@@ -379,8 +397,12 @@ def resolve (t2, d1, d2, t, d, ad):
             #print (i.Name)
 
     if t2 == '':
-        if Year >= 1975 or (t1.Rating > 25 or d1.Points > 0):
-            print ('DRIVER CHANGE: ' + d1.Name + ' (' + t1.Name + ') replaced by ' + d2.Name)
+        if Year >= 1975 or (t1.Rating > 100 or d1.Points > 0):
+            if i.Name not in ['Privateer', 'Backmarker']:
+                print ('DRIVER CHANGE: ' + d1.Name + ' (' + t1.Name + ') replaced by ' + d2.Name, end = ' ')
+                if d2.Races == 0:
+                    print ('(rookie)', end = ' ')
+                print ()
         d1.Team = ''
         t1.Drivers.remove(d1)
         t1.Drivers.append(d2)
@@ -392,24 +414,29 @@ def resolve (t2, d1, d2, t, d, ad):
         #print (d1.Name, d2.Name, t1.Drivers, t2.Drivers)
         d1.Moves = d1.Moves+1
         d2.Moves = d2.Moves+1
-        if d1.Team.Name == 'Privateer':
+        if d1.Team.Name in ['Privateer', 'Backmarker']:
             pass
-        elif Year >= 1975 or t1.Rating > 25 or d1.Points > 0 or d2.Points > 0 or t2.Rating > 25 :
+        elif Year >= 1975 or t1.Rating > 100 or d1.Points > 0 or d2.Points > 0 or t2.Rating > 100 :
             print ('DRIVER CHANGE: ' + d1.Name + ' (' + t1.Name + ') replaced by ' + d2.Name + ' (' + t2.Name + ')', end = ' ')
+            if d2.Races == 0:
+                print ('(rookie)', end = ' ')
         if random.random() > 0.5 + d1.Rep/10:
             print ()
             t1.Drivers.remove(d1)
             t2.Drivers.remove(d2)
-            t1.Drivers.append(d2)
             t2.Drivers.append(d1)
+            t1.Drivers.append(d2)
+            
             d1.Team = t2
             d2.Team = t1
             d3, t, d, ad, t3 = pick (t, t2, allDrivers, d1, d)
             resolve (t3, d1, d3, t, d, ad)
         else:
-            if d1.Team.Name == 'Privateer':
+            if d1.Team.Name in ['Privateer', 'Backmarker']:
                 pass
-            elif Year >= 1975 or t1.Rating > 25 or t2.Rating > 25 or d1.Points > 0 or d2.Points > 0:
+            if d2.Team.Name in ['Privateer', 'Backmarker']:
+                print ()
+            elif Year >= 1975 or t1.Rating > 100 or t2.Rating > 100 or d1.Points > 0 or d2.Points > 0:
                 print ("Drivers swapped.")
             t1.Drivers.remove(d1)
             t2.Drivers.remove(d2)
@@ -436,11 +463,11 @@ def driverswap (d, t, y, n, c):
 
     else:
         for i in d:
-            if i.Wins > 0 or d[0].Points*0.5 < i.Points or i.Team == '' or i.Team == p or 0.75*(i.Team.Points-i.Points) <= i.Points > 0 or i.Races < c/2:
+            if i.Wins > 0 or d[0].Points*0.5 < i.Points or i.Team == '' or i.Team == p or 0.75*(i.Team.Points-i.Points) <= i.Points > 0 or i.Races < c/2 or i == i.Team.Owner:
                 continue
             elif random.random() > (5 + i.Rep + i.Peak**3 + i.Rating + i.Points/8 - i.Team.Points/20 + i.Podiums - i.DNFs*0.1 + (n+1-i.YRaces) #+ (c-n)/5
                                     - (2020-Year)/4 + 5*i.Moves) / 10 and random.random() < 1/10:
-                if i.Team.Name == '':
+                if i.Team.Name == '' or i not in i.Team.Drivers:
                     continue
                 change = True
                 ot = ''
@@ -459,7 +486,7 @@ def injuries (d, ad, t, y):
         x = 0
         if i.Team == '':
             continue
-        if random.random() <  1/(500-(2020-Year)*2):
+        if random.random() <  1/(1000-(2020-Year)*2):
             if random.random() < 1/5:
                 x = random.random() * (random.random()*random.random()*5)**2
             else:
@@ -486,7 +513,7 @@ def injuries (d, ad, t, y):
                     if k.Sub == j:
                         no = True
                 if j != i and j.Team == '' and no == False and j.Last >= Year and j.First <= Year:
-                    if i.Team.Name != 'Privateer':
+                    if i.Team.Name not in ['Privateer', 'Backmarker']:
                         print (i.Name + ' ('+i.Team.Name+')' + ' is injured. He will miss the next ' + str(i.Injury) + ' races. To be replaced by ' + j.Name)          
                     i.Sub = j
                     break
@@ -506,18 +533,22 @@ def injuries (d, ad, t, y):
 def season (Drivers, Teams, Year, Races):
     global allDrivers, space, formers
     print (Year, end = ' - ')
-    print (len(Teams), 'Teams,', len(Races), 'Races')
+    print (len(Races), 'Races')
 
     space = 0
     for i in Drivers:
         if len(i.Name) > space:
             space = len(i.Name)
 
+    Teams.sort(key = lambda x: x.Rating, reverse = True)
+
     teamspace = 0
     for i in Teams:
         i.Points = 0
         if len(i.Name) > teamspace:
             teamspace = len(i.Name)
+        print (i.Name, i.Rating, end = ", ")
+    print()
 
     for i in Drivers:
         i.Points = 0
@@ -527,13 +558,22 @@ def season (Drivers, Teams, Year, Races):
         i.YRaces = 0
         i.Moves = 0
         i.Best = 1000
-        if Year == i.First and Year != 1950:
-            i.Rating = i.Rating * random.uniform(1/4,2/3)
-        else:
-            i.Rating = i.Rating + 0.5*(i.Peak-i.Rating)
+        i.Rating = i.Rating + 0.5*(i.Peak-i.Rating)
+        if i.Races == 0 and Year != 1950:
+            i.Rating = i.Rating * random.uniform(1/4,3/4)
         if (Year >= i.Last - 2 or Year - i.First > 15) and i.Last < 2019:
-            i.Rating = i.Rating * random.uniform(0.5,1)
+            i.Peak = i.Peak * random.uniform(2/3,1)
         i.Rating = round(i.Rating,1)
+
+        if Year < 1970:
+            i.Rating = i.Rating ** 1.5
+        elif Year < 1990:
+            i.Rating = i.Rating ** 1.25
+
+        i.Rating = round(i.Rating, 1)
+        
+        if i.Rating <= 0:
+            i.Rating = 0.1
         if i.Injury > 0:
             i.Injury = i.Injury - 5
             if i.Injury < 0:
@@ -554,7 +594,11 @@ def season (Drivers, Teams, Year, Races):
     else:
         pointsdict = {1:25,2:18,3:15,4:12,5:10,6:8,7:6,8:4,9:2,10:1}
 
-    Teams.sort(key = lambda x: x.Rating, reverse = True)
+    HighV = ['Monte-Carlo', 'Marina Bay', 'Baku', 'Interlagos', 'Sepang', 'Spa-Francorchamps', 'Detroit', 'Phoenix', 'Montréal'
+        ]
+
+    LowV = ['Yas Marina', 'Sochi', 'Magny-Cours', 'Doha'
+        ]
 
     ChampionDecided = False
 
@@ -562,8 +606,16 @@ def season (Drivers, Teams, Year, Races):
     
     for n in range (len(Races)):
         #print ()
-        #time.sleep(0.01)
-        x, y, z, PodTeams, Pole, DNQs = race (Drivers, Teams, len(pointsdict))
+        #time.sleep(0.1)
+
+        if racedict[Races[n]] in HighV:
+            ChaosMod = 1
+        elif racedict[Races[n]] in LowV:
+            ChaosMod = -1
+        else:
+            ChaosMod = 0
+        
+        x, y, z, PodTeams, Pole, DNQs = race (Drivers, Teams, len(pointsdict), ChaosMod)
         for i in Drivers:
             if i.Injury == -1:
                 i.Team = ''
@@ -605,6 +657,7 @@ def season (Drivers, Teams, Year, Races):
                 i.CPodiums = i.CPodiums+1
                 i.Rep = i.Rep + 0.1
         for j in Teams:
+            #j.Rating = round ( j.Rating * random.uniform(0.9,1.1), 1)
             if PodTeams[0] == j:
                 j.Wins = j.Wins + 1
         for k in range (len(pointsdict)):
@@ -697,10 +750,10 @@ def season (Drivers, Teams, Year, Races):
 
     for i in Drivers:
         if i.Name == Champion.Name:
-            if i.Last == Year and i.Last - i.First < 15:
+            if i.Last == Year and i.Last - i.First < 15 and random.random() < 0.5:
                 i.Last = i.Last + 1
             if i.Rating < 3:
-                i.Rating = i.Rating*2
+                i.Rating = i.Rating*1.5
             
             i.Rating = round(i.Rating,1)
                 
@@ -708,24 +761,21 @@ def season (Drivers, Teams, Year, Races):
             continue
                 
         if i.Team.Points > 0:
-            i.Rep = i.Rep + (i.Points/i.Team.Points)
+            i.Rep = i.Rep + (i.Points/i.Team.Points)*len(i.Team.Drivers)
 
 
-                
-
-
-    
 
 
     print ('Driver'.ljust(space), 'Team'.ljust(teamspace), 'Pts', ' W', ' P', ' R', 'DNF')
     for i in Drivers:
-        if i.Points > 1: #or (i.YRaces > 0 and i.Team != "Privateer"):
+        i.Rating = round(i.Rating,1)
+        if i.Points >= 1: #or (i.YRaces > 0 and i.Team != "Privateer"):
             if i.Team != '':
                 print (i.Name.ljust(space), i.Team.Name.ljust(teamspace), str(i.Points).rjust(3), str(i.Wins).rjust(2),
-                       str(i.Podiums).rjust(2), str(i.YRaces).rjust(2), str(i.DNFs).rjust(2), end = '   ')#str(round(i.Rep,1)).rjust(5),i.Rating, end =' ')
+                       str(i.Podiums).rjust(2), str(i.YRaces).rjust(2), str(i.DNFs).rjust(2), str(round(i.Rep,1)).rjust(5),i.Rating, end =' ')
             else:
                 print (i.Name.ljust(space), ''.ljust(teamspace), str(i.Points).rjust(3), str(i.Wins).rjust(2),
-                       str(i.Podiums).rjust(2), str(i.YRaces).rjust(2), str(i.DNFs).rjust(2), end = '   ')#str(round(i.Rep,1)).rjust(5),i.Rating, end =' ')
+                       str(i.Podiums).rjust(2), str(i.YRaces).rjust(2), str(i.DNFs).rjust(2), str(round(i.Rep,1)).rjust(5),i.Rating, end =' ')
             
             for j in Champions:
                 if j[1] == i.Name:
@@ -735,9 +785,17 @@ def season (Drivers, Teams, Year, Races):
     for i in Drivers:
         if i.YRaces > 0 and i.Points == 0:
             if i.Team != '':
-                print (i.Name + ' (' + i.Team.Name +'), ', end =  '')
+                if i.Team.Name in ['Privateer']:#, 'Backmarker']:
+                    continue
+                print (i.Name + ' ('+ i.Team.Name +'), ', end =  '')
             else:
                 print (i.Name, end =  ', ')
+
+    for i in Drivers:
+        if Year < 1970:
+            i.Rating = i.Rating ** (2/3)
+        elif Year < 1990:
+            i.Rating = i.Rating ** (4/5)
     print ()
 
 
@@ -785,39 +843,47 @@ def season (Drivers, Teams, Year, Races):
         for j in i.Drivers:
             while i.Drivers.count(j) > 1:
                 i.Drivers.remove(j)
+                print (i.Name, j.Name)
 
     for i in Teams:
-        DriverLog.append([i.Name,i.Drivers])
+        x = i.Name
+        y = []
+        for j in i.Drivers:
+            if j not in y:
+                y.append(j)
+        DriverLog.append([x, y])
 
     for i in Drivers:
-        if i.First + 5 == Year and i.Races == 0:
+        if (i.First + 5 == Year and i.Races == 0) or (Year - i.First > 15 and random.random() < 0.2):
             i.Last = Year
         if i.Last == Year:
             if i.Last-i.First < 12 and i.rangz > 0 and i.First != 1950 and i.Last >= Year:
                 i.Last = i.Last + 1
-            else:
-                Drivers.remove(i)
 
     for i in allDrivers:
         if i.First == Year+1:
             Drivers.append(i)
+            #print (i.Name)
 
     global formerTeams
 
     for i in Teams:
-        if i.Name == 'Ferrari' or (i.Name == 'Privateer' and Year < 1965):
+        if i.Name == 'Privateer' and Year > 1965 and random.random() < 0.1:
+            i.Name = 'Backmarker'
+            print ('Privateers eliminated.')
+        if i.Name in ['Ferrari', 'Privateer', 'Backmarker']:
             continue
-        if (      ((i.Rating < (30-(i.rangz)) and random.random() < 1/5)
-                   or (i.Rating < (2-(i.rangz/40))  and random.random() < 1/5)
-             or (i.Rating < 5 and i.Wins < 1  and (0 < (Year - i.First) < 5) and random.random() < 1/5 )
-                   or (i.Rating < 1 and Year - i.First < 2 and random.random() < 1/3 and i.Wins < 1 )
+        if (      ((i.Rating < (50-(i.rangz)) and random.random() < 1/5)
+                   or (i.Rating < (10-(i.rangz/5))  and random.random() < 1/5)
+             or (i.Rating < 10 and i.Wins < 1  and (0 < (Year - i.First) < 5) and random.random() < 1/5 )
+                   or (i.Rating < 10 and Year - i.First < 2 and random.random() < 1/4 and i.Wins < 1 )
                   or ( Year < 1960 and random.random() < 1/25)
                    )
-            and ( len(Teams) > 10 or (Year < 1975 and len(Teams) > 7) ) 
-        or (Year > 1970 and random.random() < 1/10 and i.Name == 'Privateer')):
+            and ( len(Teams) > 10 or (Year < 1975 and len(Teams) > 7) )): 
+        #or (Year > 1970 and random.random() < 1/10 and i.Name == 'Privateer')):
             
-            print (i.Name, 'leaving F1.')
-            if i.Name not in formers and i.Wins > 1:
+            print (i.Name, 'leaving F1 -', i.rangz, 'Championships -', i.Wins, 'Wins')
+            if i.Name not in formers and i.Wins > 9:
                 formers.append(i.Name)
             i.Last = Year
             formerTeams.append(i)
@@ -837,8 +903,9 @@ def season (Drivers, Teams, Year, Races):
     if Year > 1980:
         possteams.append('Penske')
         possteams.append('Audi')
-    if Year > 1960:
+    if 1970 > Year > 1960:
         possteams.append('Lotus')
+    if Year > 1960:
         possteams.append('Chrysler')
         possteams.append('Chevrolet')
         possteams.append('Lola')
@@ -847,6 +914,7 @@ def season (Drivers, Teams, Year, Races):
         possteams.append('Toyota')
         possteams.append('Nissan')
         possteams.append('Mazda')
+        possteams.append('Yamaha')
     if 1990 > Year > 1967:
         possteams.append('McLaren')
     if 1990 > Year > 1966:
@@ -864,14 +932,14 @@ def season (Drivers, Teams, Year, Races):
     natdict = { 'BMW':'Germany', 'Ford':'United States', 'Volkswagen':'Germany', 'Aston Martin':'United Kingdom','Porsche':'Germany','Bentley':'United Kingdom','Peugeot':'France',
                 'Jaguar':'United Kingdom', 'Dallara':'Italy', 'Bugatti':'Italy', 'Lancia':'Italy', 'Citroën':'France', 'Lamborghini':'Italy', 'B.R.M.':'United Kingdom',
                 'Penske':'United States', 'Audi':'Germany', 'Lotus':'United Kingdom','Chrysler':'United States', 'Chevrolet':'United States', 'Honda':'Japan','Toyota':'Japan','Nissan':'Japan',
-                'Mazda':'Japan', 'McLaren':'United Kingdom', 'Brabham':'Australia', 'March':'United Kingdom', 'Williams':"United Kingdom", 'Carlin':'United Kingdom'
+                'Mazda':'Japan', 'McLaren':'United Kingdom', 'Brabham':'Australia', 'March':'United Kingdom', 'Williams':"United Kingdom", 'Carlin':'United Kingdom', 'Yamaha':'Japan'
         }
 
 
     possteams = possteams + [i for i in formers if i not in possteams]
 
-    names = [i for i in allDrivers if (i.Rep > (30 + 20*random.random() + max (0, Year-1990) ) and i.Last < Year - 3 and i.First + 15 < Year and i. First > Year - 30)
-             or (i.Rep > 10 and Year < 1975 and i.First + 7 < Year) ]
+    names = [i for i in allDrivers if (i.Rep > (30 + 20*random.random() + max (0, Year-1990) ) and (i.Last < Year - 3 and i.First + 15 < Year and i. First > Year - 30) )
+             or (i.Rep > 1 and Year < 1975 and (i.First + 7 < Year < i.Last + 10 or i.First == 1950)) ]
     possdrivers = []
 
     for i in names:
@@ -894,8 +962,7 @@ def season (Drivers, Teams, Year, Races):
 
     #print(possteams)
 
-
-    if random.random() < 1/3:
+    if (random.random() < 1/5 and Year >=1965) or (Year < 1965 and random.random() < 1/5) and Year > 1952:
         x = random.choice(possteams)
         if type(x) == list:
             teammake(x[1], 1, x[0], x[2])
@@ -905,14 +972,14 @@ def season (Drivers, Teams, Year, Races):
     if Year+1 == 1954:
         teammake('Mercedes',70,'',"Germany")
     if Year+1 == 1954 and random.random() < 1/10:
-        teammake('Vanwall',0.1,'',"United Kingdom")
+        teammake('Vanwall',1,'',"United Kingdom")
     if Year+1 == 1956 and random.random() < 1/2:
         teammake('B.R.M.',1,'',"United Kingdom")
     if Year+1 == 1960:
         teammake('Lotus',1,'',"United Kingdom")
     if Year+1 == 1964 and random.random () <1/2:
         teammake('Honda',1,"",'Japan')
-    if Year+1 == 1966:
+    if Year+1 == 1962:
         teammake('Brabham',1,'Jack Brabham','Australia')
     if Year + 1 == 1966 and random.random() < 1/10:
         teammake('Eagle',1,'','United States')
@@ -929,174 +996,251 @@ def season (Drivers, Teams, Year, Races):
     if Year+1 == 1977:
         teammake('Renault',1,'','France')
     if Year+1 == 1978 and random.random() < 1/10:
-        teammake('Arrows',0.1,'',"United Kingdom")
+        teammake('Arrows',1,'',"United Kingdom")
     if Year+1 == 1985 and random.random() < 1/10:
-        teammake('Minardi',0.1,'',"Italy")
+        teammake('Minardi',1,'',"Italy")
     if Year+1 == 1986 and random.random() < 1/5:
         teammake('Benetton',1,'',"Italy")
     if Year+1 == 1991 and random.random() < 1/5:
-        teammake('Jordan',0.1,'',"United Kingdom")
+        teammake('Jordan',1,'',"United Kingdom")
     if Year+1 == 1993 and random.random() < 1/5:
-        teammake('Sauber',0.1,'','')
+        teammake('Sauber',1,'','')
     if Year+1 == 1999 and random.random() < 1/10:
-        teammake('B.A.R.',0.1,'',"Canada")
+        teammake('B.A.R.',1,'',"Canada")
     if Year+1 == 2002 and random.random() < 1/5:
         teammake('Toyota',1,'',"Japan")
     if Year+1 == 2005:
         teammake('Red Bull',1,'','')
     if Year+1 > 2005 and random.random() < 1/50 and 'Red Bull' not in possteams:
-        teammake('Toro Rosso',0.1,'','')
+        teammake('Toro Rosso',1,'','')
     if Year+1 == 2008 and random.random() < 1/10:
-        teammake('Force India',0.1,'',"India")
+        teammake('Force India',1,'',"India")
     if Year+1 == 2009 and random.random() < 1/10:
         teammake('Brawn GP',1,'','')
     if Year+1 == 2016 and random.random() < 1/5:
-        teammake('Haas',0.1,'',"United States")
+        teammake('Haas',1,'',"United States")
+
+
+
+
+
+    for i in Teams:
+        for j in i.Drivers:
+            while i.Drivers.count(j) > 1:
+                i.Drivers.remove(j)
+
     
     Retiring = []
     print ('Retiring:')
     allDrivers.sort(key = lambda x: x.rangz + x.CWins/1000 + x.Races/1000000, reverse = True)
     for i in allDrivers:
-        if i.Last == Year and i.Races > 0:
+        if i.Last == Year and (i.Races > 0):# or Year > 1975):
             if i.Team != '':
                 print (i.Name.ljust(space), i.Team.Name.ljust(teamspace), str(i.Races).rjust(3), 'Races', str(i.CWins).rjust(3), 'Wins', str(i.CPodiums).rjust(3),
                        'Podiums', str(i.rangz).rjust(2), 'Championships',  end =' ')
             else:
                 print (i.Name.ljust(space), ''.ljust(teamspace), str(i.Races).rjust(3), 'Races', str(i.CWins).rjust(3), 'Wins', str(i.CPodiums).rjust(3),
                 'Podiums', str(i.rangz).rjust(2), 'Championships',  end =' ')
+                try:
+                    i.Contract = 0
+                    i.Team.Drivers.remove(i)
+                    i.Team = ''
+                    Drivers.remove(i)
+                except:
+                    pass
 
             for j in Champions:
                 if j[1] == i.Name:
                     print (j[0], end = ' ')
+
             print ()
+
+        elif i.Last == Year:
+            Drivers.remove(i)
+            i.Team = ''
+
     print ()
     for i in Drivers:
         i.Contract = i.Contract - 1
 
     Teams.sort(key= lambda x: x.Points, reverse = True)
     for i in Teams:
-        if i.Name == 'Privateer':
+        if i.Name in ['Privateer', 'Backmarker']:
             pass
         i.Drivers = []
         for j in Drivers:
             if i == j.Team and j.Last > Year:
-                if random.random() < (1/3 + 0.1*j.Wins + 0.05*j.rangz) or j.Contract > 0 or j == Champion or i.Owner == j.Name:
-                    if j.Rep > 30 and j.Contract == 0:
-                        j.Contract = random.randrange(3,6)
+                if random.random() < (1/2 + 0.05*j.Wins + 0.03*j.rangz) or j.Contract > 0 or j == Champion or i.Owner == j.Name:
+                    if j.Rep > 40 and j.Contract == 0 and i.Rating > 100:
+                        j.Contract = random.randrange(2,5)
+                    elif j.Rep > 20 and j.Contract == 0 and i.Rating > 10:
+                        j.Contract = random.randrange(2,3)
                     elif j.Rep > 10 and j.Contract == 0:
-                        j.Contract = random.randrange(2,4)
-                    elif j.Rep > 5 and j.Contract == 0:
-                        j.Contract = random.randrange(1,3)
+                        j.Contract = random.randrange(1,2)
                     elif j.Contract == 0:
                         j.Contract = 1
                     if j not in i.Drivers:
                         i.Drivers.append(j)
                         j.Team = i
+                    if j.Contract > 1 and i.Name in ['Privateer', 'Backmarker']:
+                        j.Contract = 1
                     #print (i.Name.ljust(space), j.Name.ljust(space))
                 else:
                     j.Team = ''
             elif j.Last <= Year:
+                try:
+                    j.Team.Drivers.remove(j)
+                    j.Team = ''
+                except:
+                    j.Team = ''
                 j.Team = ''
+                Drivers.remove(j)
 
-    n = 0
-    if Year < 1975:
-        m = 3
-    else:
-        m = 2
-        
+    for i in Drivers:
+        if i.Team == '':
+            continue
+        if i not in i.Team.Drivers:
+            i.Team =''
+
     for i in Teams:
+
+
+        n = 0
+        if Year < 1960 and ( (i.Rating > 500 or (i.Rating > 100 and random.random() < 0.5) or random.random() < 0.1) ):
+            m = 4
+        elif Year < 1975 and (i.Rating > 25 or random.random() > 0.2):
+            m = 3
+        else:
+            m = 2
+        if i.Name in ['Privateer', 'Backmarker']:
+            m = 0
+        
+
         while len(i.Drivers) < m:
             Drivers.sort(key= lambda x: eval (x, i, Year, ''), reverse = True)
-            if Drivers[0].Rep > 30:
+            
+            if Drivers[0].Rep > 40:
                 Drivers[0].Contract = random.randrange(3,6)
-            elif Drivers[0].Rep > 10:
+            elif Drivers[0].Rep > 20 or i.Rating > 200:
                 Drivers[0].Contract = random.randrange(2,4)
-            elif Drivers[0].Rep > 5:
+            elif Drivers[0].Rep > 10 or i.Rating > 50:
                 Drivers[0].Contract = random.randrange(1,3)
             else:
                 Drivers[0].Contract = random.randrange(1,2)
+
+            Drivers[0].Team = i
+            
             if Drivers[0] not in i.Drivers:
-                Drivers[0].Team = i
                 i.Drivers.append(Drivers[0])
             #print (i.Name.ljust(space), Drivers[0].Name.ljust(space),round(Drivers[0].Rep,1))
 
 
     for i in Teams:
-        if Year < 1975 and i.Name == 'Privateer':
-            Drivers.sort(key= lambda x: (Year-x.First) + eval (x, i, Year, ''), reverse = True)
-            n =( (random.randrange(0,10) - (Year-1980)) - len(Teams) ) / 4
-            
-            for j in range(round(n)):
+        if i.Name in ['Privateer', 'Backmarker']:
+            for j in i.Drivers:
+                j.Team = ''
+            i.Drivers = []
+            if i.Name == 'Privateer':
+                Drivers.sort(key= lambda x: ((Year-x.First) + eval (x, i, Year, '')*random.random()), reverse = True)
+                n = round ( random.randrange(0,10) + max(0, (2020-Year)*0.2) - len(Teams))
+            else:
+                Drivers.sort(key= lambda x: random.random() * eval (x, i, Year, ''), reverse = True)
+                n = round ( random.randrange(12,16) + max(0, (2020-Year)*0.1) - len(Teams))
+            if i.Name == 'Backmarker' and n%2 == 1:
+                n = n-1
+            for j in range(n):
                 Drivers[j].Team = i
                 Drivers[j].Contract = 1
                 i.Drivers.append(Drivers[j])
 
 
-    for i in Teams:
-        if i.Rating > 500:
-            i.Rating = i.Rating**random.uniform(0.5,1)
-        if i.Rating > 500:
-            i.Rating = i.Rating/random.uniform(1,10)
-        elif random.random() < 1/10:
-            i.Rating == i.Rating * 25 * random.random()
-        elif i.Rating < 100:
-            if random.random () < 0.5:
-                i.Rating = i.Rating*random.uniform(1,10)
-            else:
-                i.Rating = i.Rating*random.uniform(0.1,1)
+    if random.random() < 1/5:
+        newreg = True
+        if random.random() < 0.5:
+            print ('Regulations overhaul for ' + str(Year+1)  + '!')
         else:
-            i.Rating = i.Rating*random.uniform(0.25,1.25)
-            
-        if Year % 7 == 0:
-            prev = i.Rating
-            i.Rating = 10**(random.uniform(-8,2)) + i.Rating**(1/3)
-            if i.Rating < 1:
-                i.Rating = random.uniform(0, 3) + prev**(1/3)
+            print ('New technologies introduced for ' + str(Year+1) + '!')
+    else:
+        newreg = False
 
-        if Year % 3 == 0 and random.random() < 0.2:
-            i.Rating = i.Rating**(1/2) + i.Rating * 2**((random.uniform (0, 2))**3)
+
+    for i in Teams:
+
+        if newreg == True:
+            i.Rating = 10*i.Rating** (1/3) + 100*random.random() 
+
+        #i.Rating = i.Rating**random.uniform(2/3,1/3)
+
+        if random.random () < 0.5:
+            i.Rating = i.Rating*random.uniform(1,5)
+        else:
+            i.Rating = i.Rating*random.uniform(1/5,1)
 
         if i.Rating < 1:
-            i.Rating = i.Rating**random.uniform(0.5,2)
+            i.Rating = i.Rating*5*random.random()
 
         if Year - i.First < 5:
-            i.Rating = i.Rating *random.uniform(0.2,1)
+            i.Rating = i.Rating * random.uniform(0.2,1)
 
+        if Year + 1 == i.First:
+            i.Rating = i.Rating/5
 
-        if i.Name in ['Ferrari', 'Mercedes', 'Alfa Romeo', 'Renault', 'McLaren', 'Lotus', 'Williams'] and random.random() < 1/7:
+        if i.Name in ['Ferrari', 'Mercedes', 'Renault', 'McLaren', 'Lotus', 'Williams'] and random.random() < 2/7:
             i.Rating = i.Rating * random.uniform(1,5)
+
+        i.Rating = i.Rating + random.uniform(0,10)
+
+        if i.Rating > 900 and newreg == False:
+            i.Rating = max(200,i.Rating**((1+random.random()+random.random())/3))
+
+        #print (i.Name, i.Rating)
 
 
     fastest = 0
+    loop = 0
 
-    while fastest < 10:
-        total = 0
+    while fastest < 250:
         for i in Teams:
-            total = total + i.Rating
-            if i.Rating > fastest:
-                fastest = i.Rating
-        if fastest > 10:
-            continue
-        else:
-            total = 0
-            for i in Teams:
-                i.Rating = 1 + i.Rating**2
-                total = total + i.Rating
+            if loop > 0:
+                i.Rating = 1 + i.Rating**2 + 10*random.random()
         
-    factor = 1000/total
+        factor = 1000/sum([i.Rating for i in Teams])
 
+        for i in Teams:
+            i.Rating = i.Rating * factor
+            i.Rating = round(i.Rating,1)
+        loop = loop + 1
+
+        fastest = max([i.Rating for i in Teams])
+                
+    privrating = 0
+    
     for i in Teams:
-        i.Rating = i.Rating * factor
-        i.Rating = round(i.Rating,1)
         if i.Rating == 0:
             i.Rating = 0.1
 
         if i.Name == 'Privateer':
-            i.Rating = 1
+            i.Rating = round(0.1+10*random.random(),1)
+            privrating = i.Rating
+        if i.Name == "Backmarker":
+            i.Rating = round(0.1+2*random.random(),1)
 
         for j in Teams:
             if i.Rating > j.Rating and i.Name == 'Toro Rosso' and j.Name == 'Red Bull':
                 i.Rating, j.Rating = j.Rating, i.Rating
+
+    for i in Teams:
+        if i.Rating < privrating:
+            i.Rating = privrating
+
+
+
+
+
+
+
+
+
 
     Drivers.sort(key = lambda x: x.Rep, reverse = True)
 
@@ -1110,7 +1254,7 @@ def season (Drivers, Teams, Year, Races):
                 break
         if ot == '' or i.Team == '':
             continue
-        if ot != i.Team.Name:
+        if ot != i.Team.Name and i.Team.Name != 'Privateer':
             print (i.Name.ljust(space), k[0].center(teamspace), 'to', i.Team.Name.center(teamspace))
 
     print ('No ' + str(Year+1) + ' Seat: ', end ='')
@@ -1119,6 +1263,7 @@ def season (Drivers, Teams, Year, Races):
             for m in Drivers:
                 if l.Name == m.Name and m.Team == '' and l.Last > Year and k[0] != 'Privateer' and Year != 1950:
                     print (l.Name + " (" + k[0] +'), ', end ='')
+                    m.Rep = m.Rep/2
     print()
 
     print ('Returning:', end = ' ')
@@ -1129,35 +1274,53 @@ def season (Drivers, Teams, Year, Races):
             if i in k[1]:
                 tick = True
         if i.Team != '' and i.Races > 0 and tick == False:
+            if i.Name in ['Privateer']:
+                continue
             print (i.Name + " (" + i.Team.Name + ")", end = ', ')
 
     print ()
     print ('Rookies:', end = ' ')
     for i in Drivers:
         if i.Team != '' and i.Races == 0:
+            if i.Team.Name == 'Privateer':
+                continue
             print (i.Name + " (" + i.Team.Name + ")", end = ', ')
+
+    print ()
+    for i in Teams:
+        if i.Name in ['Privateer', 'Backmarker']:
+            print (i.Name, end= ': ')
+            for j in i.Drivers:
+                print (j.iln, end = ', ')
+            
 
     print ()
     print()
 
     for i in Teams:
-        if i.Name == 'Privateer' or Year == 1950:
+        if i.Name in ['Privateer', 'Backmarker'] or Year == 1950:
             continue
         check = False
         print (i.Name.ljust(teamspace), end = ' ')
-        i.Drivers.sort(key = lambda x: x.Name)
+        i.Drivers.sort(key = lambda x: x.ln)
         print (Year, end = ' - ')
         for k in DriverLog:    
             if k[0] == i.Name:
                 check = True
                 for j in k[1]:
-                    k[1].sort(key = lambda x: x.Name)
+                    k[1].sort(key = lambda x: x.ln)
                     print (j.Name.ljust(space), end= ' ')
+                if (len(k[1]) < 4 and Year <= 1960) or (len(k[1]) < 3 and Year <= 1980):
+                    print (''.ljust(space+1), end = '')
+                if (len(k[1]) == 2 and Year <= 1960):
+                    print (''.ljust(space+1), end = '')
         if check == False:
-            if Year > 1975:
+            if Year > 1980:
                 print (' '.ljust(2+2*space), end = '')
-            else:
+            elif Year >= 1960:
                 print (' '.ljust(3+3*space), end = '')
+            else:
+                print (' '.ljust(4+4*space), end = '')
         print (Year+1, end = ' - ')
         for j in i.Drivers:
             print (j.Name.ljust(space), end = ' ')
@@ -1165,38 +1328,31 @@ def season (Drivers, Teams, Year, Races):
                         
         print ()
 
-    for i in Teams:
-        if i.Name == 'Privateer':
-            print ('Privateers: ', end = '')
-            for j in i.Drivers:
-                print (j.iln, end =', ')
-            print()
-
-
     return Drivers, Teams
 
 
 def calendar (r, y):
     print ()
-    possibles = ['ESP', 'GER', 'NED', 'ARG', 'MOR', 'POR', 'USA','AUT']
+    possibles = ['ESP', 'GER', 'NED', 'ARG', 'MOR', 'POR', 'USA','AUT','EUR']
 
     if y > 1960:
-        possibles = possibles + ['MEX', 'CAN', 'RSA', 'BRA', 'JPN']
+        possibles = possibles + ['MEX', 'CAN', 'RSA', 'BRA']
     if y > 1970:
-        possibles = possibles + ['FIN', 'SMR', 'EUR', 'USW', 'SWE']
+        possibles = possibles + ['SMR', 'JPN', 'USW', 'SWE']
     if y > 1980:
-        possibles = possibles + ['AUS', 'HUN', 'URU', 'DET', 'other']
+        possibles = possibles + ['AUS', 'HUN', 'DET', 'other']
     if y > 1990:
-        possibles = possibles + ['MAL', 'PAC', 'CHN', 'NZL', 'RUS']
+        possibles = possibles + ['MAL', 'PAC', 'CHN', 'RUS']
     if y > 2000:
-        possibles = possibles + ['BAH', 'ABU', 'TUR', 'SIN', 'KOR']
+        possibles = possibles + ['BAH', 'ABU', 'TUR', 'SIN']
     if y > 2010:
-        possibles = possibles + ['NYC', 'AZB', 'VNM', 'IND', 'QAT']
+        possibles = possibles + ['KOR', 'AZB', 'VNM', 'IND']
 
+#FIN URU NZL QAT NYC
 
     for i in r:
-        if i not in ['MON', 'GBR', 'BEL', 'ITA', 'JPN'] and ( random.random() < 0.03 or
-                                                              (Year < 1960 and random.random() < 1/10)) and ( (Year < 1960 and len(r)>6) or (Year < 1970 and len(r)>8) or (Year < 1980 and len(r)>10)
+        if i not in ['MON', 'GBR', 'BEL', 'ITA', 'JPN'] and random.random() < 1/2*len(r) and ( (Year < 1960 and len(r)>6) or
+                                                                                             (Year < 1970 and len(r)>8) or (Year < 1980 and len(r)>10)
                                                                                   or    (Year < 1990 and len(r)>12) or (Year < 2000 and len(r)>14) or (Year < 2000 and len(r)>16)
                                                                                      or (Year < 2010 and len(r)>18) or len(r)>20):
             r.remove(i)
@@ -1208,10 +1364,10 @@ def calendar (r, y):
     fail = False
     while fail == False:
         try:
-            if ( (random.random() < 1/3 and len(r) < 20) or (random.random() < 1/4 and len(r) >= 20 ) ) and ( (Year > 1950 and len(r) < 10) or (Year > 1970 and len(r) < 18) or (Year > 2010)  ):
+            if ( (random.random() < 1/3 ) ) and ( (Year > 1950 and len(r) < 10) or (Year > 1970 and len(r) < 18) or (Year > 2005 and len(r) < 26)  ):
                 candidates = [i for i in possibles if i not in r]
                 x = random.choice(candidates)
-                if x == ('USW' or 'DET' or 'NYC' or 'PAC') and 'USA' not in r:
+                if x in ['USW', 'DET', 'NYC', 'DET', 'DAL','LVG','TEX'] and 'USA' not in r:
                     x = 'USA'
                 if x == ('PAC') and 'JPN' not in r:
                     x = 'JPN'
@@ -1224,32 +1380,30 @@ def calendar (r, y):
         except:
             break
 
-    summer = ['GBR','MON','BEL','FRA','ITA','GER','SUI','ESP','NED','POR','AUT','CAN','QBC',
+    summer = ['GBR','MON','BEL','FRA','ITA','GER','SUI','ESP','NED','POR','AUT','CAN','QBC','EGR','YUG','SOV','SIC',
               'RUS','SMR','EUR','SWE','HUN','POL','DET','IRE','TUR','CZE','AZB','FIN','NYC']
 
-    additionals = [ ['AUS','Mount Panorama'], ['AUS','Surfers Paradise'], ['AUT','Vienna'], ['CAN','Vancouver'], ['CHI', 'Macau'], ['ITA','Imola'], ['RUS','Moscow'], ['SUI','Dijon'],
+    additionals = [ ['AUS','Mount Panorama'], ['AUS','Surfers Paradise'], ['AUT','Vienna'], ['CAN','Vancouver'], ['CHI', 'Macau'], ['ITA','Imola'], ['RUS','Moscow'], ['SUI','Dijon'],['GBR','Goodwood'],
                     ['AUT','Salzburgring'], ['AUS', 'Phillip Island'], ['AUS', 'Eastern Creek'], ['GER','Sachsenring'], ['SUI','Geneva'],['FIN','Tampere'],['SMR','Mugello'],['MOR','Marrakech'],
-                    ['DNK','Copenhagen'],['JPN','Motegi'],['SWE','Karlskoga'],['CAN','Edmonton'],['NED','Assen'],['MEX','Monterrey'],['POR','Algarve'],['RSA','Cape Town'],['EUR', 'Rome'],
-                    ['URU','Montevideo'], ['NZL','Pukekohe'], ['FIN','Ahvenisto'], ['DNK','Jyllandsringen'], ['QAT','Doha'], ['NYC','New York City'], ['VNM','Hanoi'],['NZL','Wellington'],
-                    ['PAC','Laguna Seca'],['PAC','Long Beach'], ['PAC','Tsukuba'], ['PAC', 'Vancouver'],['PAC','Surfers Paradise'],
+                    ['DNK','Copenhagen'],['SWE','Karlskoga'],['CAN','Edmonton'],['NED','Assen'],['MEX','Monterrey'],['POR','Algarve'],['RSA','Cape Town'],['GBR','Oulton Park'],
+                    ['GER','Solitudering'], ['VNM','Hanoi'],['MAL','Putrajaya'],['AUS','Sandown'],
+                    ['PAC','Laguna Seca'],['PAC','Long Beach'], ['PAC','Tsukuba'], ['PAC', 'Vancouver'],['PAC','Surfers Paradise'],['PAC','Suzuka'],
                     ['USA', 'Laguna Seca'], ['USW', 'Laguna Seca'], ['USA', 'Road America'], ['USA', 'Omaha'],
                     ['USA','Daytona'], ['USA','Virginia Intl.'], ['USA','Miami'], ['USA','Chicago'], ['USW','Portland'],['USW','Sonoma'],['USA','Road Atlanta'],                    
-                    ['NYC','Brooklyn'], ['NYC','Port Imperial']
+                    
         ]
 
 
     unusuals = [ ['CZE','Brno'], ['CZE','Prague'], ['DNK','Copenhagen'], ['DNK', 'Jyllandsringen'], ['ROM', 'Bucharest'], ['POL', 'Warsaw'],['IRE', 'Mondello Park'],["SCO",'Knockhill'],
-                 ['LUX','Nürburgring'], ['IRN','Tehran'], ['KEN','Nairobi'], ['EGY','Cairo'], ['LDN','Brands Hatch'], ['QBC','Montréal'],['LVG','Las Vegas'],['BER','Berlin'],['ISR','Tel-Aviv'],
-                 ['FLN','Zolder']
-                 
+                 ['LUX','Nürburgring'],  ['ENG','Brands Hatch'], ['QBC','Montréal'],['BER','Berlin'],['FLN','Zolder'],['WLN','Spa-Francorchamps'],['ENG','Silverstone'],['CAT','Barcelona'],
+                 ['FIN','Ahvenisto'], ['DNK','Jyllandsringen'], ['NZL','Wellington'],['NYC','Brooklyn'], ['NYC','Port Imperial'],['NYC','New York City'],['PES','Pescara'],['LEM','Le Mans'],
+                 ['FIN','Keimola']
                  
                  ]
 
-
     if y < 1995:
-        unusuals.append(['YUG','Grobnik'])
-        unusuals.append(['SIC','Siracusa'])
-        unusuals.append(['SOV','Moscow'])
+        unusuals = unusuals + [ ['YUG','Grobnik'], ['SIC','Siracusa'], ['SOV','Moscow'], ['EGR','Sachsenring'], ['SIC', 'Targa Florio']
+                                ]
     else:
         unusuals.append(['SVK','Slovakiaring'])
         unusuals.append(['GEO','Tblisi'])
@@ -1258,18 +1412,19 @@ def calendar (r, y):
         unusuals.append(['IDO','Sentul'])
         unusuals.append(['LAT','Biķernieki'])
         unusuals.append(['EST','Auto24Ring'])
+        unusuals.append(['EGR','EuroSpeedway Lausitz'])
 
 
     for x in unusuals:
         summer.append(x[0])
 
 
-    unusuals.append(['DUB','Dubai'])
-    unusuals.append(['KSA','Riyadh'])
-    unusuals.append(['THA','Buriram'])
-    unusuals.append(['CHL','Codegua'])
-    unusuals.append(['TEX','Austin'])
-    unusuals.append(['COL','Tocancipá'])
+    unusuals = unusuals + [['DUB','Dubai'],['KSA','Riyadh'],['THA','Buriram'],['CHL','Codegua'],['TEX','Austin'],['IRN','Tehran'], ['KEN','Nairobi'], ['EGY','Cairo'],['LVG','Las Vegas'],
+                           ['ISR','Tel-Aviv'],['ZIM','Donnybrook'],['DAL','Dallas'],['TEX','Austin'],['TEX','Dallas'],['SUZ','Suzuka'],['URU','Montevideo'], ['NZL','Pukekohe'],['QAT','Doha'],
+                           ['VEN','Caracas'],['CUB','Havana']
+
+                           ]
+                           
 
     if y > 2000:
         additionals.append(['GBR','Rockingham'])
@@ -1277,6 +1432,8 @@ def calendar (r, y):
         additionals.append(['ARG','Rio Hondo'])
         additionals.append(['RSA','Phakisa'])
         additionals.append(['NZL','Hampton Downs'])
+        additionals.append(['JPN','Motegi'])
+        additionals.append(['GER','Lausitzring'])
 
 
 
@@ -1292,7 +1449,7 @@ def calendar (r, y):
         else:
             ov = ''
             
-        if i in racedict and (random.random() < 0.9 or (Year < 1975 and random.random() < 0.8) or (Year < 1960 and random.random() < 0.5)):
+        if i in racedict and  (random.random() > 1.5/len(r) or (Year < 1975 and random.random() < 3/len(r)) or (Year < 1960 and random.random() < 0.5)):
             continue
         elif i in racedict:
             racedict.pop(i)
@@ -1315,8 +1472,9 @@ def calendar (r, y):
         cands = []
 
         for j in Circuits:
-            if (j.Race == i and j.First <= Year and j.Last >= Year - 10 and j.Name not in racedict.values()  or
-                (i == 'EUR' and j.Race in summer and j.Race in r and j.Name not in racedict.values() and j.First <= Year and j.Last >= Year - 10 and j.Race != ('CAN' or 'DET' or 'NYC'))):
+            if (j.Race == i and j.First <= Year + 15 and j.Last >= Year - 10 and j.Name not in racedict.values() ):
+                cands.extend([j.Name]*j.Total)
+            if i == 'EUR' and j.Race in summer and j.Race in r and j.Race in racedict and j.Name not in racedict.values() and j.Race not in ['CAN', 'DET', 'NYC'] and j.First <= Year and j.Last >= Year - 10:
                 cands.extend([j.Name]*j.Total)
 
         
@@ -1324,11 +1482,13 @@ def calendar (r, y):
             
         n = 0
         while len(cands) == 0 and n < 100:
-            n = n+1
             cands = [x.Name for x in Circuits if x.Race == i and x.First <= Year+n and x.Last >= Year-n and x.Name not in racedict.values()]
+            n = n+5
 
         for j in additionals:
             if j[0] == i and j[1] not in racedict.values() and y > 1955:
+                cands.append(j[1])
+            if i == 'EUR' and j[0] in summer and j[0] in r and j[1] not in racedict.values() and j[0] not in ['CAN', 'DET', 'NYC']:
                 cands.append(j[1])
 
         if i == 'USA' and 'USW' not in r:
@@ -1336,18 +1496,12 @@ def calendar (r, y):
 
         if ov != '':
             cands.append(ov)
-
-        if len(cands) == 0:
-            r.remove(i)
-            i = 'HKG'
-            race = 'Hong Kong'
-            racedict[i] = race
-            r.append(i)
                 
         if race == '':
             #print (i)
             cands.sort(key= lambda x: random.random())
-            race = cands[0]
+            if len (cands) > 0:
+                race = cands[0]
             #print (cands)
             try:
                 race = race.Name
@@ -1367,10 +1521,12 @@ def calendar (r, y):
 
     def rate (x, s, f):
         
-        timedict = {'MON':-0.75,'ITA':0.9,'BEL':0.89,'HUN':0.5,'GBR':0, 'SMR':-0.9,'JPN':50,'MEX':50,'BAH':-50,'ARG':-80,'ABU':80}
+        timedict = {'MON':-0.75,'ITA':0.9,'BEL':0.8,'HUN':0.5,'GBR':0, 'SMR':-0.9,'JPN':50,'MEX':50,'BAH':-50,'ARG':-80,'PAC':-65,'ABU':80,'SIN':65}
         try:
             return timedict[x]
         except:
+            if x in ['EUR', 'MOR', 'TUR' ]:
+                return random.uniform(-2,2)
             if x in f:
                 return random.uniform(-100,100)
             else:
@@ -1385,6 +1541,7 @@ def calendar (r, y):
     
     return r, racedict
         
+Champion = ''
 racedict = {}
 while Year < 2020:
     Races, racedict = calendar (Races, Year)
@@ -1414,17 +1571,30 @@ for i in Teams:
         print (i.Name.ljust(15), i.First, i.Last, str(i.Wins).rjust(4), str(i.Races).rjust(5), str(i.rangz).rjust(2))
 
 print()
-allDrivers.sort(key = lambda x: x.rangz + x.CWins/100 + x.Races/100000000000000, reverse = True)
-print ('Driver'.ljust(25), 'Wins', 'Pods', ' Races', ' WP%', '  Championships')
+allDrivers.sort(key = lambda x: x.rangz + x.CWins/100 - x.Races/100000000000000, reverse = True)
+print ('Driver'.ljust(25), 'Wins', 'Pods', ' Races', ' WP%', '  First', 'Last', '                 Championships')
 x = 0
 for i in allDrivers:
-    if i.CWins >= 5 or i.rangz > 0 or i.CWins/(i.Races+0.01) > 0.1:
+    if i.CWins >= 10 or i.rangz > 0 or (i.CWins/(i.Races+0.01) > 0.1 and i.CWins > 1):
         if x > i.rangz:
             print()
         x = i.rangz
         per = '{0:.1f}'.format(round((100*i.CWins/(i.Races+0.0000000000000001)),2))
-        print (i.Name.ljust(25), str(i.CWins).rjust(4), str(i.CPodiums).rjust(4), str(i.Races).rjust(5), str(per).rjust(5) + '%', i.rangz, end =' ')
+        print (i.Name.ljust(25), str(i.CWins).rjust(4), str(i.CPodiums).rjust(4), str(i.Races).rjust(5), str(per).rjust(5) + '%', i.rangz, i.First, i.Last, end ='                  ')
         for j in Champions:
             if j[1] == i.Name:
                 print (j[0], end=' ')
         print ()
+#print ('5+ Wins: ', end = '')
+print ()
+allDrivers.sort(key = lambda x: x.ln)
+for j in range (9, 0, -1):
+    if j > 1:
+        print (j, 'Wins:', end = '')
+    else:
+        print ('1 Win:', end = '')
+    for i in allDrivers:
+        if i.rangz == 0 and i.CWins == j:
+            print (' '+i.Name, end = ',')
+    print()
+print ()
