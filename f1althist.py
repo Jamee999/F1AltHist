@@ -247,6 +247,7 @@ def race (Drivers, Teams, n, c):
             if x < count:
                 if len(Standings) + len(DNFs) < t:
                     z = RetFac + max(0, (6-i.Rating)**2/500)
+                    #rint (i.Name, z)
                     if len(Standings) > n:
                         z = z+0.1
 
@@ -755,6 +756,7 @@ def season (Drivers, Teams, Year, Races):
             if i.Rating < 3:
                 i.Rating = i.Rating*1.5
             
+            i.Rating = min(i.Rating, 10)
             i.Rating = round(i.Rating,1)
                 
         if i.Team == '':
@@ -873,11 +875,11 @@ def season (Drivers, Teams, Year, Races):
             print ('Privateers eliminated.')
         if i.Name in ['Ferrari', 'Privateer', 'Backmarker']:
             continue
-        if (      ((i.Rating < (50-(i.rangz)) and random.random() < 1/5)
-                   or (i.Rating < (10-(i.rangz/5))  and random.random() < 1/5)
-             or (i.Rating < 10 and i.Wins < 1  and (0 < (Year - i.First) < 5) and random.random() < 1/5 )
-                   or (i.Rating < 10 and Year - i.First < 2 and random.random() < 1/4 and i.Wins < 1 )
-                  or ( Year < 1960 and random.random() < 1/25)
+        if (      ((i.Rating < (50-(i.rangz)) and random.random() < 1/3)
+                   or (i.Rating < (10-(i.rangz/5))  and random.random() < 1/3)
+             or (i.Rating < 10 and i.Wins < 1  and (0 < (Year - i.First) < 5) and random.random() < 1/3)
+                   or (i.Rating < 10 and Year - i.First < 2 and random.random() < 1/3 and i.Wins < 1 )
+                  or ( Year < 1960 and random.random() < 1/15)
                    )
             and ( len(Teams) > 10 or (Year < 1975 and len(Teams) > 7) )): 
         #or (Year > 1970 and random.random() < 1/10 and i.Name == 'Privateer')):
@@ -894,7 +896,7 @@ def season (Drivers, Teams, Year, Races):
             for j in Teams:
                 if i.Name == 'Red Bull' and j.Name == 'Toro Rosso':
                     j.Name = 'Red Bull'
-                    print ('Toro Rosso is now now Red Bull.')
+                    print ('Toro Rosso is now Red Bull.')
 
     possteams = ['BMW', 'Ford', 'Volkswagen','Aston Martin','Porsche','Bentley','Peugeot', 'Jaguar', 'Dallara','Bugatti', 'Lancia','Citroën','Lamborghini']
 
@@ -962,7 +964,7 @@ def season (Drivers, Teams, Year, Races):
 
     #print(possteams)
 
-    if (random.random() < 1/5 and Year >=1965) or (Year < 1965 and random.random() < 1/5) and Year > 1952:
+    if (random.random() < 1/4 and Year >=1965) or (Year < 1965 and random.random() < 1/4) and Year > 1952:
         x = random.choice(possteams)
         if type(x) == list:
             teammake(x[1], 1, x[0], x[2])
@@ -1019,9 +1021,6 @@ def season (Drivers, Teams, Year, Races):
         teammake('Brawn GP',1,'','')
     if Year+1 == 2016 and random.random() < 1/5:
         teammake('Haas',1,'',"United States")
-
-
-
 
 
     for i in Teams:
@@ -1167,7 +1166,7 @@ def season (Drivers, Teams, Year, Races):
     for i in Teams:
 
         if newreg == True:
-            i.Rating = 10*i.Rating** (1/3) + 100*random.random() 
+            i.Rating = 10*i.Rating** (1/3) + 25*random.random() 
 
         #i.Rating = i.Rating**random.uniform(2/3,1/3)
 
@@ -1176,7 +1175,7 @@ def season (Drivers, Teams, Year, Races):
         else:
             i.Rating = i.Rating*random.uniform(1/5,1)
 
-        if i.Rating < 1:
+        if i.Rating < 1 and i.Name != 'Backmarker':
             i.Rating = i.Rating*5*random.random()
 
         if Year - i.First < 5:
@@ -1193,13 +1192,14 @@ def season (Drivers, Teams, Year, Races):
         if i.Rating > 900 and newreg == False:
             i.Rating = max(200,i.Rating**((1+random.random()+random.random())/3))
 
+
         #print (i.Name, i.Rating)
 
 
     fastest = 0
     loop = 0
 
-    while fastest < 250:
+    while fastest < 400:
         for i in Teams:
             if loop > 0:
                 i.Rating = 1 + i.Rating**2 + 10*random.random()
@@ -1217,13 +1217,14 @@ def season (Drivers, Teams, Year, Races):
     
     for i in Teams:
         if i.Rating == 0:
-            i.Rating = 0.1
+            i.Rating = 1
 
         if i.Name == 'Privateer':
             i.Rating = round(0.1+10*random.random(),1)
             privrating = i.Rating
         if i.Name == "Backmarker":
             i.Rating = round(0.1+2*random.random(),1)
+            privrating = i.Rating
 
         for j in Teams:
             if i.Rating > j.Rating and i.Name == 'Toro Rosso' and j.Name == 'Red Bull':
@@ -1351,7 +1352,7 @@ def calendar (r, y):
 #FIN URU NZL QAT NYC
 
     for i in r:
-        if i not in ['MON', 'GBR', 'BEL', 'ITA', 'JPN'] and random.random() < 1/2*len(r) and ( (Year < 1960 and len(r)>6) or
+        if i not in ['MON', 'GBR', 'BEL', 'ITA', 'JPN'] and random.random() < len(r)/100 and ( (Year < 1960 and len(r)>6) or
                                                                                              (Year < 1970 and len(r)>8) or (Year < 1980 and len(r)>10)
                                                                                   or    (Year < 1990 and len(r)>12) or (Year < 2000 and len(r)>14) or (Year < 2000 and len(r)>16)
                                                                                      or (Year < 2010 and len(r)>18) or len(r)>20):
@@ -1364,7 +1365,7 @@ def calendar (r, y):
     fail = False
     while fail == False:
         try:
-            if ( (random.random() < 1/3 ) ) and ( (Year > 1950 and len(r) < 10) or (Year > 1970 and len(r) < 18) or (Year > 2005 and len(r) < 26)  ):
+            if ( (random.random() < 1/2 ) ) and ( (Year > 1950 and len(r) < 10) or (Year > 1965 and len(r) < 18) or (Year > 2005 and len(r) < 26)  ):
                 candidates = [i for i in possibles if i not in r]
                 x = random.choice(candidates)
                 if x in ['USW', 'DET', 'NYC', 'DET', 'DAL','LVG','TEX'] and 'USA' not in r:
@@ -1388,9 +1389,9 @@ def calendar (r, y):
                     ['DNK','Copenhagen'],['SWE','Karlskoga'],['CAN','Edmonton'],['NED','Assen'],['MEX','Monterrey'],['POR','Algarve'],['RSA','Cape Town'],['GBR','Oulton Park'],
                     ['GER','Solitudering'], ['VNM','Hanoi'],['MAL','Putrajaya'],['AUS','Sandown'],
                     ['PAC','Laguna Seca'],['PAC','Long Beach'], ['PAC','Tsukuba'], ['PAC', 'Vancouver'],['PAC','Surfers Paradise'],['PAC','Suzuka'],
-                    ['USA', 'Laguna Seca'], ['USW', 'Laguna Seca'], ['USA', 'Road America'], ['USA', 'Omaha'],
-                    ['USA','Daytona'], ['USA','Virginia Intl.'], ['USA','Miami'], ['USA','Chicago'], ['USW','Portland'],['USW','Sonoma'],['USA','Road Atlanta'],                    
-                    
+                    ['USA', 'Laguna Seca'], ['USW', 'Laguna Seca'], ['USA', 'Road America'], ['USA', 'Omaha'],['USA','Long Beach'],
+                    ['USA','Daytona'], ['USA','Virginia Intl.'], ['USA','Miami'], ['USA','Chicago'], ['USW','Portland'],['USW','Sonoma'],['USA','Road Atlanta'],
+                    ['USA','Charlotte']
         ]
 
 
